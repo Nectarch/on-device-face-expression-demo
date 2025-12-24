@@ -1,0 +1,21 @@
+/* index.css - global reset to let the app center properly */
+:root {
+  color-scheme: light dark;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: block;
+  background: transparent;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+}

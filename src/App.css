@@ -1,0 +1,184 @@
+/* App.css - simple theming + layout (ASCII only so no weird text) */
+
+.app-root {
+  --bg: #0f0f10;
+  --text: #f2f2f2;
+  --subtext: rgba(242, 242, 242, 0.72);
+  --card-bg: #171718;
+  --card-border: rgba(255, 255, 255, 0.10);
+  --btn-bg: #1f1f20;
+  --btn-text: #f2f2f2;
+  --btn-border: rgba(255, 255, 255, 0.14);
+  --warn-bg: #242424;
+  --warn-text: #f2f2f2;
+
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-family: system-ui, sans-serif;
+  padding: 16px;
+
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.app-root[data-theme="light"] {
+  --bg: #ffffff;
+  --text: #111111;
+  --subtext: rgba(17, 17, 17, 0.70);
+  --card-bg: #d9d9d9;
+  --card-border: rgba(0, 0, 0, 0.12);
+  --btn-bg: #ffffff;
+  --btn-text: #111111;
+  --btn-border: rgba(0, 0, 0, 0.18);
+  --warn-bg: #f0f0f2;
+  --warn-text: #111111;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.btn {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--btn-bg);
+  color: var(--btn-text);
+  border: 1px solid var(--btn-border);
+  cursor: pointer;
+
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.warn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border: 1px solid var(--card-border);
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+}
+
+.layout {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.cameraBox {
+  position: relative;
+  width: 820px;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #111;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.videoEl {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+.canvasEl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.offOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 18px;
+  background: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.sidebar {
+  min-width: 260px;
+  flex: 1;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.card {
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  color: var(--text);
+
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+.card + .card {
+  margin-top: 12px;
+}
+
+.cardTitle {
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.subtext {
+  margin-top: 10px;
+  font-size: 13px;
+  color: var(--subtext);
+}
+
+.smallsubtext {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--subtext);
+}
+
+.fixedNote {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  max-width: min(520px, calc(100vw - 32px));
+  font-size: 13px;
+  color: var(--subtext);
+  z-index: 10;
+}
+
+.bottomPad {
+  padding-bottom: 56px;
+}
+
+@media (max-width: 900px) {
+  .cameraBox {
+    width: 100%;
+  }
+}
