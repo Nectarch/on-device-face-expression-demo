@@ -11,6 +11,8 @@
   --btn-border: rgba(255, 255, 255, 0.14);
   --warn-bg: #242424;
   --warn-text: #f2f2f2;
+  --note-bg: rgba(0, 0, 0, 0.72);
+  --note-text: rgba(242, 242, 242, 0.88);
 
   background: var(--bg);
   color: var(--text);
@@ -32,6 +34,8 @@
   --btn-border: rgba(0, 0, 0, 0.18);
   --warn-bg: #f0f0f2;
   --warn-text: #111111;
+  --note-bg: rgba(255, 255, 255, 0.92);
+  --note-text: rgba(17, 17, 17, 0.75);
 }
 
 .container {
@@ -165,16 +169,27 @@
 
 .fixedNote {
   position: fixed;
-  left: 16px;
-  bottom: 16px;
-  max-width: min(520px, calc(100vw - 32px));
+  left: 0;
+  right: 0;
+  bottom: 0;
+
+  padding: 12px 16px;
+
+  background: var(--note-bg);
+  color: var(--note-text);
+
   font-size: 13px;
-  color: var(--subtext);
-  z-index: 10;
+  line-height: 1.35;
+
+  z-index: 50;
+  pointer-events: none;
+
+  border-top: 1px solid var(--card-border);
+  backdrop-filter: blur(6px);
 }
 
 .bottomPad {
-  padding-bottom: 56px;
+  padding-bottom: 72px;
 }
 
 @media (max-width: 900px) {

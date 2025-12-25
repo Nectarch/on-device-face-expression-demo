@@ -119,6 +119,8 @@ function decideAnchor(
   return { side: "right", x: clamp(rightPos.x, 0, vw - labelW), y: clamp(rightPos.y, 0, vh - labelH) };
 }
 
+type Blip = "none" | "orange" | "yellow";
+
 export default function App() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -138,7 +140,21 @@ export default function App() {
   const anchorFacesRef = useRef<Array<Anchor | null>>([]);
 
   const freakyUntilRef = useRef<number>(0);
-  const freakyComboUntilRef = useRef<number>(0);
+
+  const surprisedHoldStartRef = useRef<number | null>(null);
+  const goldenWindowEndRef = useRef<number>(0);
+
+  const noFaceSinceRef = useRef<number | null>(null);
+  const glitchSatisfiedRef = useRef<boolean>(false);
+
+  const followupWindowEndRef = useRef<number>(0);
+  const sawHappyRef = useRef<boolean>(false);
+  const sawAngryRef = useRef<boolean>(false);
+
+  const lastGoldenActiveRef = useRef<boolean>(false);
+
+  const [blip, setBlip] = useState<Blip>("none");
+  const blipTimeoutRef = useRef<number | null>(null);
 
   const mobile = useMemo(() => isMobileUA(), []);
 
@@ -149,10 +165,36 @@ export default function App() {
   const boxInsetX = 30;
 
   const freakyCooldownMs = 4000;
-  const comboWindowMs = 2000;
-  const angryThresh = 0.30;
+
+  const surprisedThreshold = 0.95;
+  const surprisedHoldMs = 5000;
+
+  const goldenWindowMs = 4000;
+  const noFaceRequiredMs = 1000;
+
+  const followupWindowMs = 4000;
   const happyThresh = 0.30;
-  const triggerChancePerTick = 0.20;
+  const angryThresh = 0.30;
+
+  function blipOnce(color: Blip, ms: number) {
+    if (blipTimeoutRef.current != null) window.clearTimeout(blipTimeoutRef.current);
+    setBlip(color);
+    blipTimeoutRef.current = window.setTimeout(() => {
+      setBlip("none");
+      blipTimeoutRef.current = null;
+    }, ms);
+  }
+
+  function resetFreakySequence() {
+    surprisedHoldStartRef.current = null;
+    goldenWindowEndRef.current = 0;
+    noFaceSinceRef.current = null;
+    glitchSatisfiedRef.current = false;
+    followupWindowEndRef.current = 0;
+    sawHappyRef.current = false;
+    sawAngryRef.current = false;
+    lastGoldenActiveRef.current = false;
+  }
 
   useEffect(() => {
     (async () => {
@@ -186,7 +228,7 @@ export default function App() {
       smoothedFacesRef.current = [];
       anchorFacesRef.current = [];
       freakyUntilRef.current = 0;
-      freakyComboUntilRef.current = 0;
+      resetFreakySequence();
 
       setRunning(true);
       setStatus("Running (on-device).");
@@ -210,10 +252,12 @@ export default function App() {
       (v.srcObject as MediaStream).getTracks().forEach((t) => t.stop());
       v.srcObject = null;
     }
+
     smoothedFacesRef.current = [];
     anchorFacesRef.current = [];
     freakyUntilRef.current = 0;
-    freakyComboUntilRef.current = 0;
+    resetFreakySequence();
+
     clearCanvas();
     setRunning(false);
     setStatus("Stopped.");
@@ -286,52 +330,118 @@ export default function App() {
           ctx.clearRect(0, 0, canvas.width, canvas.height);
 
           const nowMs = performance.now();
+          const inFreaky = nowMs < freakyUntilRef.current;
+
+          const goldenActive = nowMs < goldenWindowEndRef.current;
+
+          if (lastGoldenActiveRef.current && !goldenActive) {
+            if (followupWindowEndRef.current === 0 && !glitchSatisfiedRef.current) {
+              blipOnce("orange", 220);
+            }
+          }
+          lastGoldenActiveRef.current = goldenActive;
+
+          if (!inFreaky) {
+            const inFollowup = nowMs < followupWindowEndRef.current;
+            if (!goldenActive && !inFollowup && (goldenWindowEndRef.current !== 0 || followupWindowEndRef.current !== 0)) {
+              resetFreakySequence();
+            }
+          }
 
           if (dets.length === 0) {
-            const inFreaky = nowMs < freakyUntilRef.current;
-            if (inFreaky) {
-              ctx.font = "34px sans-serif";
-              const text = "FREAKY";
-              const pad = 14;
-              const w = ctx.measureText(text).width + pad * 2;
-              const h = 52;
-              ctx.fillStyle = "rgba(0,0,0,0.65)";
-              ctx.fillRect(12, 12, w, h);
-              ctx.fillStyle = "white";
-              ctx.fillText(text, 12 + pad, 12 + 38);
-            } else {
+            if (!inFreaky && nowMs < goldenWindowEndRef.current && !glitchSatisfiedRef.current) {
+              if (noFaceSinceRef.current == null) noFaceSinceRef.current = nowMs;
+              if (nowMs - (noFaceSinceRef.current ?? nowMs) >= noFaceRequiredMs) {
+                glitchSatisfiedRef.current = true;
+                blipOnce("yellow", 220);
+              }
+            }
+
+            if (!inFreaky) {
               ctx.font = "18px sans-serif";
               ctx.fillStyle = "rgba(0,0,0,0.65)";
               ctx.fillRect(12, 12, 220, 34);
               ctx.fillStyle = "white";
               ctx.fillText("No face detected", 20, 35);
+            } else {
+              ctx.font = "44px sans-serif";
+              const text = "FREAKY";
+              const pad = 18;
+              const w = ctx.measureText(text).width + pad * 2;
+              const h = 66;
+              ctx.fillStyle = "rgba(0,0,0,0.65)";
+              ctx.fillRect(12, 12, w, h);
+              ctx.fillStyle = "white";
+              ctx.fillText(text, 12 + pad, 12 + 48);
             }
+
             smoothedFacesRef.current = [];
             anchorFacesRef.current = [];
             return;
           }
 
-          let sawCombo = false;
+          if (!inFreaky && nowMs < goldenWindowEndRef.current) {
+            if (noFaceSinceRef.current != null) {
+              if (!glitchSatisfiedRef.current) {
+                noFaceSinceRef.current = null;
+              } else {
+                followupWindowEndRef.current = nowMs + followupWindowMs;
+
+                goldenWindowEndRef.current = 0;
+
+                noFaceSinceRef.current = null;
+                sawHappyRef.current = false;
+                sawAngryRef.current = false;
+              }
+            }
+          } else {
+            noFaceSinceRef.current = null;
+          }
+
+          let maxSurprised = 0;
+          let maxHappy = 0;
+          let maxAngry = 0;
+
           for (const d of dets) {
             const raw: ExprMap = d.expressions as any;
-            const angry = raw["angry"] ?? 0;
-            const happy = raw["happy"] ?? 0;
-            if (angry >= angryThresh && happy >= happyThresh) {
-              sawCombo = true;
-              break;
+            maxSurprised = Math.max(maxSurprised, raw["surprised"] ?? 0);
+            maxHappy = Math.max(maxHappy, raw["happy"] ?? 0);
+            maxAngry = Math.max(maxAngry, raw["angry"] ?? 0);
+          }
+
+          if (!inFreaky) {
+            const inGoldenNow = nowMs < goldenWindowEndRef.current;
+            const inFollowupNow = nowMs < followupWindowEndRef.current;
+
+            if (!inGoldenNow && !inFollowupNow) {
+              if (maxSurprised >= surprisedThreshold) {
+                if (surprisedHoldStartRef.current == null) surprisedHoldStartRef.current = nowMs;
+                const heldMs = nowMs - (surprisedHoldStartRef.current ?? nowMs);
+                if (heldMs >= surprisedHoldMs) {
+                  goldenWindowEndRef.current = nowMs + goldenWindowMs;
+                  noFaceSinceRef.current = null;
+                  glitchSatisfiedRef.current = false;
+                  surprisedHoldStartRef.current = null;
+                  followupWindowEndRef.current = 0;
+                  sawHappyRef.current = false;
+                  sawAngryRef.current = false;
+                  blipOnce("orange", 220);
+                }
+              } else {
+                surprisedHoldStartRef.current = null;
+              }
             }
-          }
 
-          if (sawCombo) {
-            freakyComboUntilRef.current = nowMs + comboWindowMs;
-          }
+            if (inFollowupNow) {
+              if (maxHappy >= happyThresh) sawHappyRef.current = true;
+              if (maxAngry >= angryThresh) sawAngryRef.current = true;
 
-          const inCooldown = nowMs < freakyUntilRef.current;
-          const inComboWindow = nowMs < freakyComboUntilRef.current;
-
-          if (!inCooldown && inComboWindow) {
-            if (Math.random() < triggerChancePerTick) {
-              freakyUntilRef.current = nowMs + freakyCooldownMs;
+              if (sawHappyRef.current && sawAngryRef.current) {
+                freakyUntilRef.current = nowMs + freakyCooldownMs;
+                resetFreakySequence();
+              } else if (nowMs >= followupWindowEndRef.current) {
+                resetFreakySequence();
+              }
             }
           }
 
@@ -364,21 +474,28 @@ export default function App() {
 
             if (showFreaky) {
               const text = "FREAKY";
-              ctx.font = "34px sans-serif";
-              const pad = 14;
-              const lineH = 38;
+              ctx.font = "44px sans-serif";
+              const pad = 18;
+              const lineH = 48;
               const labelW = ctx.measureText(text).width + pad * 2;
               const labelH = lineH + pad * 2;
 
               const prevAnchor = anchorFacesRef.current[i] ?? null;
-              const anchor = decideAnchor(prevAnchor, { x: xDraw, y, w, h }, labelW, labelH, canvas.width, canvas.height);
+              const anchor = decideAnchor(
+                prevAnchor,
+                { x: xDraw, y, w, h },
+                labelW,
+                labelH,
+                canvas.width,
+                canvas.height
+              );
               nextAnchors[i] = anchor;
 
               ctx.fillStyle = "rgba(0,0,0,0.65)";
               ctx.fillRect(anchor.x, anchor.y, labelW, labelH);
 
               ctx.fillStyle = "white";
-              ctx.fillText(text, anchor.x + pad, anchor.y + pad + lineH - 10);
+              ctx.fillText(text, anchor.x + pad, anchor.y + pad + lineH - 12);
 
               nextSmoothed[i] = smoothedFacesRef.current[i] ?? null;
               continue;
@@ -399,7 +516,14 @@ export default function App() {
             const labelH = lines.length * lineH + pad * 2;
 
             const prevAnchor = anchorFacesRef.current[i] ?? null;
-            const anchor = decideAnchor(prevAnchor, { x: xDraw, y, w, h }, labelW, labelH, canvas.width, canvas.height);
+            const anchor = decideAnchor(
+              prevAnchor,
+              { x: xDraw, y, w, h },
+              labelW,
+              labelH,
+              canvas.width,
+              canvas.height
+            );
             nextAnchors[i] = anchor;
 
             ctx.fillStyle = "rgba(0,0,0,0.65)";
@@ -424,6 +548,9 @@ export default function App() {
   }, [running, flipX]);
 
   const videoStyle = flipX ? ({ transform: "scaleX(-1)" } as React.CSSProperties) : undefined;
+
+  const dotBg =
+    blip === "orange" ? "rgba(255,165,0,0.95)" : blip === "yellow" ? "rgba(255,235,59,0.95)" : "rgba(255,255,255,0.0)";
 
   return (
     <div className="app-root bottomPad" data-theme={theme}>
@@ -455,6 +582,22 @@ export default function App() {
                 Flip Camera
               </button>
             )}
+
+            {/* Top-right tiny dot blip */}
+            <div
+              style={{
+                position: "absolute",
+                right: 12,
+                top: 12,
+                width: 10,
+                height: 10,
+                borderRadius: 999,
+                background: dotBg,
+                boxShadow: blip === "none" ? "none" : "0 0 10px rgba(0,0,0,0.35)",
+                zIndex: 25,
+                pointerEvents: "none",
+              }}
+            />
 
             <video ref={videoRef} className="videoEl" playsInline muted style={videoStyle} />
             <canvas ref={canvasRef} className="canvasEl" />
