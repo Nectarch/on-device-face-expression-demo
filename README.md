@@ -1,73 +1,59 @@
-# React + TypeScript + Vite
+# On-device Facial Expression Demo (Webcam)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A client-side web app that runs facial expression classification in real time from your laptop camera and renders:
 
-Currently, two official plugins are available:
+- A face bounding box (single or multiple faces supported by the detector)
+- Top expression probabilities (model confidence)
+- Basic performance metrics (FPS / inference rate)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**Privacy:** All processing runs locally in your browser. No video is uploaded.
 
-## React Compiler
+## Live Demo
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- https://on-device-face-expression-demo-by-michael.vercel.app
 
-## Expanding the ESLint configuration
+## Repository
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- https://github.com/Nectarch/on-device-face-expression-demo
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Features
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Real-time webcam pipeline (Start/Stop)
+- Face bounding box + top-3 expression probabilities
+- On-device inference (face-api.js)
+- Theme toggle (light/dark)
+- Mirror option (Flip Camera)
+- Hidden Easter egg
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Tech Stack
+
+- React + TypeScript + Vite
+- face-api.js (Tiny Face Detector + Expression model)
+- All model files served from `/public/models`
+
+## How it works
+
+1. Loads face-api.js models from `/public/models`
+2. Captures webcam frames via `getUserMedia`
+3. Runs face detection + expression inference at a throttled rate
+4. Smooths displayed probabilities with an exponential moving average (EMA)
+5. Renders overlays on a canvas aligned with the video
+
+## Run locally
+
+Requirements: Node.js 18+ recommended.
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Build
+```bash
+npm run build
+npm run preview
 ```
+## Notes and Limitations
+- Predictions are expression categories from the model, not a measurement of internal emotional state.
+
+- Performance varies with lighting, camera quality, and pose.
