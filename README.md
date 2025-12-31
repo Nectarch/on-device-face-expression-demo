@@ -8,6 +8,8 @@ A client-side web app that runs facial expression classification in real time fr
 
 **Privacy:** All processing runs locally in your browser. No video is uploaded.
 
+**Technical report (DOI):** https://doi.org/10.5281/zenodo.18109914
+
 ## Live Demo
 
 - https://on-device-face-expression-demo-by-michael.vercel.app
@@ -57,3 +59,7 @@ npm run preview
 - Predictions are expression categories from the model, not a measurement of internal emotional state.
 
 - Performance varies with lighting, camera quality, and pose.
+
+## Citation
+
+Michael Farrell Gunawan (2025). *Privacy-Preserving Real-Time Facial Expression Classification in the Browser: System Design and Tradeoff Evaluation (Technical Report).* Zenodo. https://doi.org/10.5281/zenodo.18109914
